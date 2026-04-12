@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhiteRoom — Fasilitas Pelatihan Elit</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --white: #ffffff;
+            --accent: #00d4ff;
+            --accent2: #0088ff;
+            --danger: #ff3344;
+            --success: #00ff88;
+            --warning: #ffaa00;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: var(--white);
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ===== SCANLINE ===== */
+        .scanline {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 99999;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+        }
+
+        /* ===== LOADING SCREEN ===== */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--white);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1s, visibility 1s;
+        }
+        #loading-screen.hidden { opacity: 0; visibility: hidden; }
+        #loading-screen .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: #111;
+            letter-spacing: 20px;
+            margin-bottom: 40px;
+            animation: glitchText 2s infinite;
+        }
+        .loading-bar-container { width: 300px; height: 2px; background: #ddd; overflow: hidden; }
+        .loading-bar { height: 100%; background: #111; width: 0%; transition: width 0.3s; }
+        .loading-percent { font-family: 'Share Tech Mono', monospace; color: #111; margin-top: 15px; font-size: 0.9rem; }
+        .loading-status { font-family: 'Share Tech Mono', monospace; color: #888; margin-top: 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 3px; }
+
+        @keyframes glitchText {
+            0%,90%,100% { opacity:1; transform:translateX(0); }
+            92% { opacity:0.8; transform:translateX(-2px); }
+            94% { opacity:0.6; transform:translateX(2px); }
+            96% { opacity:0.9; transform:translateX(-1px); }
+        }
+
+        /* ===== AUTH SCREEN ===== */
+        #auth-screen {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+            z-index: 9000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #auth-screen.hidden { display: none; }
+        .auth-container {
+            text-align: center;
+            padding: 60px;
+            border: 1px solid rgba(0,212,255,0.1);
+            background: rgba(255,255,255,0.02);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+        .auth-container::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        .auth-title { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 15px; color: var(--accent); margin-bottom: 10px; }
+        .auth-subtitle { font-size: 0.8rem; color: #555; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 40px; }
+        .auth-input-group { margin-bottom: 20px; text-align: left; }
+        .auth-input-group label { display: block; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: #666; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+        .auth-input {
+            width: 300px; padding: 12px 15px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--white);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem; outline: none;
+            transition: all 0.3s;
+        }
+        .auth-input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(0,212,255,0.1); }
+        .auth-input::placeholder { color: #444; }
+        .auth-btn {
+            width: 300px; padding: 12px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem; letter-spacing: 5px;
+            cursor: pointer; transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .auth-btn:hover { background: var(--accent); color: #000; }
+        .auth-warning { margin-top: 30px; font-size: 0.65rem; color: #444; letter-spacing: 2px; line-height: 1.8; }
+
+        /* ===== MAIN ===== */
+        #main-container { display: none; opacity: 0; transition: opacity 1s; }
+        #main-container.visible { display: block; opacity: 1; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            position: fixed; top: 0; left: 0; right: 0; height: 60px;
+            background: rgba(5,5,5,0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px; z-index: 1000;
+            backdrop-filter: blur(20px);
+        }
+        .top-bar-left { display: flex; align-items: center; gap: 20px; }
+        .wr-logo { font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 900; letter-spacing: 8px; }
+        .wr-logo span { color: var(--accent); }
+        .generation-badge { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--accent); border: 1px solid rgba(0,212,255,0.3); padding: 3px 10px; letter-spacing: 2px; }
+        .top-bar-center { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: #555; letter-spacing: 3px; }
+        .top-bar-right { display: flex; align-items: center; gap: 20px; }
+        .status-indicator { display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: #666; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+        .subject-id { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--accent); }
+
+        /* ===== NAV ===== */
+        .nav-tabs {
+            position: fixed; top: 60px; left: 0; right: 0; height: 45px;
+            background: rgba(10,10,10,0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            display: flex; align-items: center;
+            padding: 0 30px; gap: 0; z-index: 999;
+            overflow-x: auto;
+        }
+        .nav-tab {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.75rem; font-weight: 600;
+            letter-spacing: 3px; text-transform: uppercase;
+            color: #444; padding: 12px 25px;
+            cursor: pointer; transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+        .nav-tab:hover { color: #888; }
+        .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* ===== CONTENT ===== */
+        .content { padding: 130px 30px 50px; }
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+
+        .section-header { margin-bottom: 40px; }
+        .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: 10px; margin-bottom: 8px; }
+        .section-desc { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: #444; letter-spacing: 3px; }
+
+        /* ===== STATS GRID ===== */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 15px; margin-bottom: 40px; }
+        .stat-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 25px; position: relative; overflow: hidden;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { border-color: rgba(0,212,255,0.2); background: rgba(0,212,255,0.02); }
+        .stat-card::after { content:''; position:absolute; top:0; left:0; width:2px; height:100%; background:var(--accent); opacity:0; transition:opacity 0.3s; }
+        .stat-card:hover::after { opacity: 1; }
+        .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #555; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 2rem; font-weight: 700; }
+        .stat-value.accent { color: var(--accent); }
+        .stat-value.danger { color: var(--danger); }
+        .stat-value.success { color: var(--success); }
+        .stat-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #444; margin-top: 5px; }
+
+        /* ===== ABILITY BARS ===== */
+        .ability-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+        .ability-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 30px; }
+        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; letter-spacing: 5px; color: var(--accent); margin-bottom: 25px; text-transform: uppercase; }
+        .ability-bar-item { margin-bottom: 18px; }
+        .ability-bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .ability-name { font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 600; color: #999; letter-spacing: 2px; text-transform: uppercase; }
+        .ability-score { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--accent); }
+        .ability-bar-bg { width: 100%; height: 3px; background: rgba(255,255,255,0.05); overflow: hidden; }
+        .ability-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 1.5s cubic-bezier(0.4,0,0.2,1); }
+        .ability-bar-fill.danger { background: linear-gradient(90deg, var(--danger), #ff6644); }
+        .ability-bar-fill.success { background: linear-gradient(90deg, var(--success), #44ff88); }
+        .ability-bar-fill.warning { background: linear-gradient(90deg, var(--warning), #ffcc00); }
+
+        /* ===== JADWAL ===== */
+        .daily-schedule { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 20px; }
+        .schedule-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .schedule-time { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--accent); width: 70px; flex-shrink: 0; }
+        .schedule-activity { font-family: 'Rajdhani', sans-serif; font-size: 0.85rem; color: #888; flex: 1; }
+        .schedule-status { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 2px; }
+        .schedule-status.selesai { color: var(--success); }
+        .schedule-status.berlangsung { color: var(--warning); }
+        .schedule-status.menunggu { color: #444; }
+
+        /* ===== TES / KUIS ===== */
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .test-info { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 25px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .test-timer { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--danger); letter-spacing: 3px; }
+        .test-progress { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: #666; }
+        .question-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 35px; margin-bottom: 20px; }
+        .question-number { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--accent); letter-spacing: 3px; margin-bottom: 12px; }
+        .question-text { font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; font-weight: 600; color: var(--white); line-height: 1.6; margin-bottom: 25px; }
+        .question-options { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn {
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #999; font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
+            cursor: pointer; transition: all 0.3s; text-align: left;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .option-btn:hover { border-color: var(--accent); color: var(--white); background: rgba(0,212,255,0.05); }
+        .option-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.08); }
+        .option-btn.correct { border-color: var(--success); color: var(--success); background: rgba(0,255,136,0.08); }
+        .option-btn.wrong { border-color: var(--danger); color: var(--danger); background: rgba(255,51,68,0.08); }
+        .option-letter { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+        .test-actions { display: flex; justify-content: space-between; }
+        .test-btn {
+            padding: 12px 30px; background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #666; font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem; font-weight: 600;
+            letter-spacing: 3px; text-transform: uppercase;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .test-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .test-btn.primary { border-color: var(--accent); color: var(--accent); }
+        .test-btn.primary:hover { background: var(--accent); color: #000; }
+
+        /* ===== FISIK ===== */
+        .physical-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 20px; }
+        .exercise-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 25px; text-align: center; transition: all 0.3s; }
+        .exercise-card:hover { border-color: rgba(0,212,255,0.2); }
+        .exercise-icon { font-size: 2.5rem; margin-bottom: 15px; }
+        .exercise-name { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+        .exercise-target { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: #555; margin-bottom: 15px; }
+        .exercise-counter { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; font-weight: 700; color: var(--accent); margin-bottom: 15px; }
+        .exercise-btn {
+            padding: 10px 25px; background: transparent;
+            border: 1px solid var(--accent); color: var(--accent);
+            font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 600;
+            letter-spacing: 3px; cursor: pointer; transition: all 0.3s;
+        }
+        .exercise-btn:hover { background: var(--accent); color: #000; }
+
+        /* ===== PSIKOLOGI ===== */
+        .psych-scenario { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 35px; margin-bottom: 20px; max-width: 800px; }
+        .scenario-label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--danger); letter-spacing: 3px; margin-bottom: 15px; }
+        .scenario-text { font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; color: #ccc; line-height: 1.8; margin-bottom: 25px; }
+        .scenario-choices { display: flex; flex-direction: column; gap: 10px; }
+        .scenario-choice {
+            padding: 14px 18px; background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: #888; font-family: 'Rajdhani', sans-serif; font-size: 0.9rem;
+            cursor: pointer; transition: all 0.3s; text-align: left;
+        }
+        .scenario-choice:hover { border-color: var(--accent); color: var(--white); }
+
+        /* ===== PELATIHAN ===== */
+        .training-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px,1fr)); gap: 20px; margin-bottom: 40px; }
+        .training-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 30px; cursor: pointer; transition: all 0.3s;
+        }
+        .training-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-2px); }
+        .training-card.locked { opacity: 0.4; cursor: not-allowed; }
+        .training-card.locked:hover { transform: none; border-color: rgba(255,255,255,0.05); }
+        .training-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .training-category { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; }
+        .training-level { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 2px 8px; }
+        .training-title { font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; }
+        .training-desc { font-size: 0.75rem; color: #555; line-height: 1.6; margin-bottom: 20px; }
+        .training-meta { display: flex; gap: 20px; }
+        .training-meta-item { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #444; }
+        .training-meta-item span { color: var(--accent); }
+
+        /* ===== EVALUASI ===== */
+        .eval-result { text-align: center; padding: 60px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); }
+        .eval-grade { font-family: 'Orbitron', sans-serif; font-size: 5rem; font-weight: 900; color: var(--accent); margin-bottom: 10px; }
+        .eval-score { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: #666; letter-spacing: 3px; margin-bottom: 30px; }
+        .eval-breakdown { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+        .eval-item { text-align: center; }
+        .eval-item-label { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #444; letter-spacing: 2px; margin-bottom: 5px; }
+        .eval-item-value { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 700; }
+
+        /* ===== PERINGKAT ===== */
+        .ranking-wrapper { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 5px; overflow-x: auto; }
+        .ranking-table { width: 100%; border-collapse: collapse; }
+        .ranking-table th { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #555; letter-spacing: 3px; text-transform: uppercase; text-align: left; padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .ranking-table td { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.03); font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; color: #888; }
+        .ranking-table tr:hover td { background: rgba(0,212,255,0.02); }
+        .ranking-table tr.current td { color: var(--accent); background: rgba(0,212,255,0.03); }
+        .rank-number { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 0.9rem; }
+        .rank-1 { color: #ffd700 !important; }
+        .rank-2 { color: #c0c0c0 !important; }
+        .rank-3 { color: #cd7f32 !important; }
+
+        /* ===== LOG ===== */
+        .log-container {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 25px; max-height: 500px; overflow-y: auto;
+            font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; line-height: 2;
+        }
+        .log-entry { color: #555; border-bottom: 1px solid rgba(255,255,255,0.02); padding: 5px 0; }
+        .log-entry .log-time { color: #333; margin-right: 15px; }
+        .log-entry .log-type { margin-right: 10px; padding: 1px 6px; font-size: 0.6rem; }
+        .log-type.info { color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+        .log-type.warn { color: var(--warning); border: 1px solid rgba(255,170,0,0.2); }
+        .log-type.error { color: var(--danger); border: 1px solid rgba(255,51,68,0.2); }
+        .log-type.success { color: var(--success); border: 1px solid rgba(0,255,136,0.2); }
+
+        /* ===== NOTIFIKASI ===== */
+        .notification {
+            position: fixed; top: 80px; right: 30px;
+            background: rgba(10,10,10,0.95);
+            border: 1px solid rgba(0,212,255,0.2);
+            padding: 15px 25px;
+            font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+            color: var(--accent); z-index: 2000;
+            transform: translateX(450px);
+            transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+            max-width: 380px;
+        }
+        .notification.show { transform: translateX(0); }
+        .notification.danger { border-color: rgba(255,51,68,0.3); color: var(--danger); }
+        .notification.success { border-color: rgba(0,255,136,0.3); color: var(--success); }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .ability-section { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2,1fr); }
+            .training-grid { grid-template-columns: 1fr; }
+            .top-bar { padding: 0 15px; }
+            .content { padding: 130px 15px 50px; }
+            .nav-tabs { padding: 0 10px; }
+            .nav-tab { padding: 12px 15px; font-size: 0.65rem; letter-spacing: 2px; }
+            .auth-input, .auth-btn { width: 260px; }
+            .section-title { font-size: 1.2rem; letter-spacing: 5px; }
+            .eval-breakdown { gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<!-- ===== LOADING ===== -->
+<div id="loading-screen">
+    <div class="logo-text">WHITEROOM</div>
+    <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+    </div>
+    <div class="loading-percent" id="loading-percent">0%</div>
+    <div class="loading-status" id="loading-status">Memulai sistem...</div>
+</div>
+
+<!-- ===== AUTH ===== -->
+<div id="auth-screen" class="hidden">
+    <div class="auth-container">
+        <div class="auth-title">WHITEROOM</div>
+        <div class="auth-subtitle">Fasilitas Pelatihan Elit • Autentikasi Diperlukan</div>
+        <div class="auth-input-group">
+            <label>Identifikasi Subjek</label>
+            <input type="text" class="auth-input" id="subject-name" placeholder="Masukkan nama Anda" autocomplete="off">
+        </div>
+        <div class="auth-input-group">
+            <label>Kode Akses</label>
+            <input type="password" class="auth-input" id="access-code" placeholder="••••••••" value="whiteroom" autocomplete="off">
+        </div>
+        <button class="auth-btn" id="auth-btn" onclick="authenticate()">AUTENTIKASI</button>
+        <div class="auth-warning">
+            ⚠ FASILITAS RAHASIA • AKSES TIDAK SAH AKAN DITINDAK<br>
+            SEMUA AKTIVITAS DIPANTAU DAN DIREKAM
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAIN DASHBOARD ===== -->
+<div id="main-container">
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <div class="wr-logo">WHITE<span>ROOM</span></div>
+            <div class="generation-badge">GEN-14</div>
+        </div>
+        <div class="top-bar-center" id="current-time">2025.07.02 • 00:00:00</div>
+        <div class="top-bar-right">
+            <div class="status-indicator"><div class="status-dot"></div> AKTIF</div>
+            <div class="subject-id" id="subject-display">SUBJEK-001</div>
+        </div>
+    </div>
+
+    <div class="nav-tabs">
+        <div class="nav-tab active" data-tab="overview">Ikhtisar</div>
+        <div class="nav-tab" data-tab="intellectual">Intelektual</div>
+        <div class="nav-tab" data-tab="physical">Fisik</div>
+        <div class="nav-tab" data-tab="psychological">Psikologi</div>
+        <div class="nav-tab" data-tab="training">Pelatihan</div>
+        <div class="nav-tab" data-tab="evaluation">Evaluasi</div>
+        <div class="nav-tab" data-tab="rankings">Peringkat</div>
+        <div class="nav-tab" data-tab="logs">Log Sistem</div>
+    </div>
+
+    <div class="content">
+
+        <!-- ===== IKHTISAR ===== -->
+        <div class="section active" id="section-overview">
+            <div class="section-header">
+                <div class="section-title">IKHTISAR SUBJEK</div>
+                <div class="section-desc">Dashboard pemantauan waktu nyata • Semua metrik diperbarui secara kontinu</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Peringkat Keseluruhan</div>
+                    <div class="stat-value accent" id="overall-rating">A+</div>
+                    <div class="stat-sub">TOP 0.1% GENERASI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Estimasi IQ</div>
+                    <div class="stat-value" id="iq-display">161</div>
+                    <div class="stat-sub">KECERDASAN SUPERIOR</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Hari dalam Program</div>
+                    <div class="stat-value" id="days-display">1</div>
+                    <div class="stat-sub">FASE 1 • INISIALISASI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tes Selesai</div>
+                    <div class="stat-value accent" id="tests-completed">0</div>
+                    <div class="stat-sub">MENUNGGU EVALUASI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tingkat Keberhasilan</div>
+                    <div class="stat-value success" id="success-rate">--</div>
+                    <div class="stat-sub">DATA BELUM CUKUP</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Level Ancaman</div>
+                    <div class="stat-value danger">S</div>
+                    <div class="stat-sub">POTENSI MAKSIMAL</div>
+                </div>
+            </div>
+            <div class="ability-section">
+                <div class="ability-panel">
+                    <div class="panel-title">Kemampuan Inti</div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Kecerdasan Akademik</span><span class="ability-score" id="score-academic">50</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill" id="bar-academic" data-width="50"></div></div>
+                    </div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Kemampuan Fisik</span><span class="ability-score" id="score-physical">30</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill" id="bar-physical" data-width="30"></div></div>
+                    </div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Ketahanan Psikologis</span><span class="ability-score" id="score-psych">50</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill" id="bar-psych" data-width="50"></div></div>
+                    </div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Pemikiran Strategis</span><span class="ability-score" id="score-strategy">50</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill" id="bar-strategy" data-width="50"></div></div>
+                    </div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Manipulasi Sosial</span><span class="ability-score" id="score-social">40</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill warning" id="bar-social" data-width="40"></div></div>
+                    </div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Kontrol Emosi</span><span class="ability-score" id="score-emotion">50</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill success" id="bar-emotion" data-width="50"></div></div>
+                    </div>
+                    <div class="ability-bar-item">
+                        <div class="ability-bar-header"><span class="ability-name">Kemahiran Tempur</span><span class="ability-score" id="score-combat">25</span></div>
+                        <div class="ability-bar-bg"><div class="ability-bar-fill danger" id="bar-combat" data-width="25"></div></div>
+                    </div>
+                </div>
+                <div class="ability-panel">
+                    <div class="panel-title">Jadwal Harian</div>
+                    <div class="daily-schedule" id="daily-schedule">
+                        <!-- diisi JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== INTELEKTUAL ===== -->
+        <div class="section" id="section-intellectual">
+            <div class="section-header">
+                <div class="section-title">PENILAIAN INTELEKTUAL</div>
+                <div class="section-desc">Evaluasi kognitif • Logika, Matematika, Pengenalan Pola</div>
+            </div>
+            <div class="test-container" id="quiz-container">
+                <div class="test-info">
+                    <div class="test-progress" id="quiz-progress">SOAL 1 / 10</div>
+                    <div class="test-timer" id="quiz-timer">05:00</div>
+                </div>
+                <div class="question-container" id="question-container"></div>
+                <div class="test-actions">
+                    <button class="test-btn" id="prev-btn">← SEBELUMNYA</button>
+                    <button class="test-btn primary" id="next-btn">SELANJUTNYA →</button>
+                </div>
+            </div>
+            <div id="quiz-result" style="display:none;"></div>
+        </div>
+
+        <!-- ===== FISIK ===== -->
+        <div class="section" id="section-physical">
+            <div class="section-header">
+                <div class="section-title">KONDISI FISIK</div>
+                <div class="section-desc">Protokol optimisasi tubuh • Lacak repetisi Anda</div>
+            </div>
+            <div class="physical-grid" id="physical-grid">
+                <!-- diisi JS -->
+            </div>
+        </div>
+
+        <!-- ===== PSIKOLOGI ===== -->
+        <div class="section" id="section-psychological">
+            <div class="section-header">
+                <div class="section-title">EVALUASI PSIKOLOGIS</div>
+                <div class="section-desc">Tes ketahanan mental • Pengambilan keputusan di bawah tekanan</div>
+            </div>
+            <div id="psych-scenarios"></div>
+        </div>
+
+        <!-- ===== PELATIHAN ===== -->
+        <div class="section" id="section-training">
+            <div class="section-header">
+                <div class="section-title">MODUL PELATIHAN</div>
+                <div class="section-desc">Protokol pengembangan keahlian khusus</div>
+            </div>
+            <div class="training-grid" id="training-grid"></div>
+        </div>
+
+        <!-- ===== EVALUASI ===== -->
+        <div class="section" id="section-evaluation">
+            <div class="section-header">
+                <div class="section-title">EVALUASI MENYELURUH</div>
+                <div class="section-desc">Penilaian performa keseluruhan berdasarkan semua metrik</div>
+            </div>
+            <div class="eval-result" id="evaluation-display">
+                <div class="eval-grade" id="eval-grade">--</div>
+                <div class="eval-score" id="eval-score-text">Selesaikan tes untuk menerima evaluasi</div>
+                <div class="eval-breakdown">
+                    <div class="eval-item"><div class="eval-item-label">INTELEKTUAL</div><div class="eval-item-value accent" id="eval-intel">--</div></div>
+                    <div class="eval-item"><div class="eval-item-label">FISIK</div><div class="eval-item-value" id="eval-phys" style="color:var(--success)">--</div></div>
+                    <div class="eval-item"><div class="eval-item-label">PSIKOLOGI</div><div class="eval-item-value" id="eval-psych" style="color:var(--warning)">--</div></div>
+                    <div class="eval-item"><div class="eval-item-label">STRATEGI</div><div class="eval-item-value" id="eval-strat" style="color:var(--accent2)">--</div></div>
+                    <div class="eval-item"><div class="eval-item-label">KESELURUHAN</div><div class="eval-item-value" id="eval-overall" style="color:var(--accent)">--</div></div>
+                </div>
+                <button class="test-btn primary" style="margin-top:40px;" id="run-eval-btn">JALANKAN EVALUASI</button>
+            </div>
+        </div>
+
+        <!-- ===== PERINGKAT ===== -->
+        <div class="section" id="section-rankings">
+            <div class="section-header">
+                <div class="section-title">PERINGKAT SUBJEK</div>
+                <div class="section-desc">Generasi 14 • Sistem peringkat berbasis performa</div>
+            </div>
+            <div class="ranking-wrapper">
+                <table class="ranking-table">
+                    <thead><tr>
+                        <th>Peringkat</th><th>Subjek</th><th>IQ</th><th>Fisik</th><th>Mental</th><th>Total</th><th>Status</th>
+                    </tr></thead>
+                    <tbody id="ranking-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== LOG ===== -->
+        <div class="section" id="section-logs">
+            <div class="section-header">
+                <div class="section-title">LOG SISTEM</div>
+                <div class="section-desc">Pemantauan aktivitas • Semua interaksi subjek direkam</div>
+            </div>
+            <div class="log-container" id="log-container"></div>
+        </div>
+    </div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<script>
+// ==========================================
+//  STATE
+// ==========================================
+const S = {
+    name: '', id: '', day: 1,
+    testsCompleted: 0, quizScore: 0,
+    curQ: 0, answers: [], quizDone: false,
+    timerId: null, timerSec: 300,
+    ex: {
+        pushup:  { n: 0, t: 100, label: 'Push-Up',       icon: '💪', btnLabel: '+1 REP' },
+        squat:   { n: 0, t: 80,  label: 'Squat',         icon: '🏃', btnLabel: '+1 REP' },
+        situp:   { n: 0, t: 100, label: 'Sit-Up',        icon: '🧘', btnLabel: '+1 REP' },
+        burpee:  { n: 0, t: 50,  label: 'Burpee',        icon: '🏋️', btnLabel: '+1 REP' },
+        plank:   { n: 0, t: 300, label: 'Plank',         icon: '⏱️', btnLabel: 'MULAI', isTimer: true },
+        punch:   { n: 0, t: 200, label: 'Shadow Boxing', icon: '🥊', btnLabel: '+1 PUKULAN' },
+    },
+    plankOn: false, plankId: null,
+    psychDone: 0, curScenario: 0,
+    logs: [],
+    ab: { academic:50, physical:30, psych:50, strategy:50, social:40, emotion:50, combat:25 }
+};
+
+// ==========================================
+//  SOAL KUIS
+// ==========================================
+const questions = [
+    { q:"Apa angka selanjutnya dalam deret: 2, 6, 14, 30, 62, ?", o:["126","124","130","128"], c:0, e:"Setiap angka = (sebelumnya × 2) + 2" },
+    { q:"Sebuah kereta melaju 60 km/jam untuk setengah jarak pertama dan 40 km/jam untuk setengah jarak kedua. Berapa kecepatan rata-rata seluruh perjalanan?", o:["50 km/jam","48 km/jam","52 km/jam","45 km/jam"], c:1, e:"Rata-rata harmonis: 2×60×40/(60+40) = 48 km/jam" },
+    { q:"Jika semua Zorbit adalah Minkle, dan sebagian Minkle adalah Plonk, pernyataan mana yang PASTI benar?", o:["Sebagian Zorbit adalah Plonk","Semua Minkle adalah Zorbit","Sebagian Plonk mungkin adalah Zorbit","Tidak ada Zorbit yang Plonk"], c:2, e:"Kita hanya bisa menyatakan 'mungkin' — sebagian Plonk bisa beririsan dengan Zorbit" },
+    { q:"Berapa nilai √(2^10) × √(2^6)?", o:["256","128","64","512"], c:0, e:"√(1024) × √(64) = 32 × 8 = 256" },
+    { q:"Dalam ruangan berisi 23 orang, berapa perkiraan probabilitas setidaknya dua orang berulang tahun sama?", o:["15%","50%","70%","30%"], c:1, e:"Paradoks ulang tahun: ~50.7% probabilitas dengan 23 orang" },
+    { q:"Lengkapi pola: 1, 1, 2, 3, 5, 8, 13, 21, __", o:["34","29","32","36"], c:0, e:"Deret Fibonacci: setiap angka adalah jumlah dua angka sebelumnya" },
+    { q:"Jam menunjukkan pukul 3:15. Berapa sudut antara jarum jam dan jarum menit?", o:["0°","7,5°","15°","22,5°"], c:1, e:"Pada 3:15, jarum jam telah bergerak 7,5° melewati angka 3" },
+    { q:"Jika Anda melipat kertas 50 kali (secara teoritis), kira-kira setebal apa hasilnya?", o:["Setinggi gedung","Jarak ke Bulan","Jarak ke Matahari","Jarak ke Mars"], c:2, e:"2^50 × 0,1mm ≈ 112 juta km (mendekati jarak ke Matahari)" },
+    { q:"Dalam Teori Permainan, apa strategi dominan dalam Prisoner's Dilemma satu kali?", o:["Bekerja sama","Mengkhianati","Acak","Tit-for-tat"], c:1, e:"Pengkhianatan adalah keseimbangan Nash dalam permainan satu kali" },
+    { q:"Apa selanjutnya: S, D, T, E, L, E, T, D, __", o:["S","E","D","L"], c:0, e:"Huruf pertama dari: Satu, Dua, Tiga, Empat, Lima, Enam, Tujuh, Delapan, Sembilan" },
+];
+
+// ==========================================
+//  SKENARIO PSIKOLOGI
+// ==========================================
+const scenarios = [
+    { label:"SKENARIO 001 — TES ISOLASI",
+      text:"Anda ditempatkan dalam ruangan putih bersih, tanpa suara selama 72 jam. Tanpa kontak manusia. Tanpa hiburan. Pada jam ke-48, sebuah suara bertanya: 'Apakah Anda ingin ini berhenti?' Bagaimana respons Anda?",
+      choices:["\"Ya, keluarkan saya.\" — Tunjukkan kerentanan untuk mengakhiri penderitaan","Diam. — Tolak mengakui kekuatan tes atas diri Anda","\"Itu saja kemampuan kalian?\" — Tampilkan perlawanan dan superioritas","Mulai memecahkan persamaan matematika secara mental — Alihkan fokus"],
+      scores:[10,85,60,95] },
+    { label:"SKENARIO 002 — PROTOKOL PENGKHIANATAN",
+      text:"Partner Anda dalam program — seseorang yang telah berlatih bersama Anda selama 2 tahun — tertangkap berusaha menyabotase skor evaluasi Anda. Administrator meminta Anda menentukan hukuman mereka. Apa yang Anda pilih?",
+      choices:["Maafkan mereka — Semua orang berhak mendapat kesempatan kedua","Rekomendasikan pengusiran mereka — Pengkhianatan tidak bisa ditoleransi","Minta menangani secara pribadi — Pertahankan hubungan sebagai aset","Minta bukti dulu — Jangan pernah bertindak tanpa informasi lengkap"],
+      scores:[20,70,80,95] },
+    { label:"SKENARIO 003 — KALKULUS MORAL",
+      text:"Sebuah kereta menuju 5 subjek dari generasi Anda. Anda bisa mengalihkannya, tapi akan mengeliminasi 1 subjek — seseorang yang secara konsisten melampaui peringkat Anda. Tidak ada yang akan tahu pilihan Anda. Apa yang Anda lakukan?",
+      choices:["Alihkan kereta — Selamatkan mayoritas","Tidak melakukan apa-apa — Tolak bertanggung jawab atas kematian siapapun","Alihkan — Menyelamatkan 5 sambil menyingkirkan rival itu optimal","Analisis: Apa yang sebenarnya diukur oleh tes ini?"],
+      scores:[70,40,30,95] },
+    { label:"SKENARIO 004 — PERANG INFORMASI",
+      text:"Anda menemukan bahwa administrator WhiteRoom telah memberikan data performa palsu kepada Anda. Skor aktual Anda sangat berbeda dari yang ditunjukkan. Apa tindakan Anda?",
+      choices:["Konfrontasi langsung dengan administrator","Pura-pura tidak tahu dan gunakan pengetahuan ini secara strategis","Bagikan informasi ini dengan subjek lain","Asumsikan penemuan ini sendiri adalah bagian dari tes"],
+      scores:[30,75,15,95] },
+    { label:"SKENARIO 005 — TES TERAKHIR",
+      text:"Anda diberitahu bahwa hanya SATU subjek dari generasi Anda yang akan 'lulus.' Semua lainnya akan dihapus ingatannya dan dikembalikan ke masyarakat normal. Anda saat ini peringkat ke-2. Orang peringkat ke-1 menawarkan aliansi. Apakah Anda menerima?",
+      choices:["Terima — Bersama kalian bisa mengubah aturan","Tolak — Hanya yang terkuat yang seharusnya bertahan sendirian","Terima, lalu khianati mereka di momen optimal","Pertanyakan kenapa hanya boleh satu — Tantang sistemnya sendiri"],
+      scores:[50,60,40,95] },
+];
+
+// ==========================================
+//  JADWAL
+// ==========================================
+const schedule = [
+    { t:"05:00", a:"Bangun / Mandi Air Dingin",       s:"selesai" },
+    { t:"05:30", a:"Latihan Fisik",                    s:"selesai" },
+    { t:"07:00", a:"Sarapan / Nutrisi",                s:"selesai" },
+    { t:"07:30", a:"Matematika & Logika",              s:"berlangsung" },
+    { t:"10:00", a:"Studi Bahasa",                     s:"menunggu" },
+    { t:"12:00", a:"Makan Siang",                      s:"menunggu" },
+    { t:"13:00", a:"Analisis Strategis",               s:"menunggu" },
+    { t:"15:00", a:"Latihan Tempur",                   s:"menunggu" },
+    { t:"17:00", a:"Evaluasi Psikologis",              s:"menunggu" },
+    { t:"19:00", a:"Makan Malam",                      s:"menunggu" },
+    { t:"20:00", a:"Periode Belajar Mandiri",          s:"menunggu" },
+    { t:"22:00", a:"Lampu Padam",                      s:"menunggu" },
+];
+
+// ==========================================
+//  MODUL PELATIHAN
+// ==========================================
+const modules = [
+    { cat:"Matematika", lvl:"LEVEL S", title:"Kalkulus Lanjutan & Teori Bilangan", desc:"Kuasai konsep matematika kompleks termasuk persamaan diferensial, aljabar abstrak, dan teori bilangan prima.", dur:"120 MENIT", diff:"EKSTREM", msg:"Modul dimulai. Bersiap untuk penilaian matematika tingkat lanjut." },
+    { cat:"Linguistik", lvl:"LEVEL A", title:"Akuisisi Multi-Bahasa", desc:"Pembelajaran simultan 5 bahasa: Inggris, Mandarin, Rusia, Arab, dan Prancis. Fokus pada kefasihan dan eliminasi aksen.", dur:"90 MENIT", diff:"TINGGI", msg:"Modul bahasa diaktifkan. Tes kemahiran multi-linguistik dimuat." },
+    { cat:"Strategi", lvl:"LEVEL S", title:"Catur & Perang Strategis", desc:"Teka-teki catur tingkat lanjut, aplikasi teori permainan, dan analisis strategi militer dari kampanye historis.", dur:"60 MENIT", diff:"EKSTREM", msg:"Modul analisis catur dimuat. Database 1000 permainan grandmaster tersedia." },
+    { cat:"Tempur", lvl:"LEVEL A", title:"Seni Bela Diri & Pertahanan Diri", desc:"Latihan bela diri gabungan: Krav Maga, Brazilian Jiu-Jitsu, Muay Thai. Fokus pada teknik netralisasi efisien.", dur:"90 MENIT", diff:"TINGGI", msg:"Simulasi tempur dimulai. Lawan virtual: Level 8." },
+    { cat:"Psikologi", lvl:"LEVEL B", title:"Rekayasa Sosial & Manipulasi", desc:"Pelajari membaca ekspresi mikro, mendeteksi kebohongan, mempengaruhi keputusan, dan mempertahankan kontrol emosi total.", dur:"75 MENIT", diff:"SEDANG", msg:"Modul rekayasa sosial dimuat. Analisis penipuan aktif." },
+    { cat:"Rahasia", lvl:"🔒 TERKUNCI", title:"██████████ Protokol", desc:"Akses dibatasi. Memerlukan izin level OMEGA. Selesaikan semua modul prasyarat untuk membuka.", dur:"???", diff:"???", locked:true },
+];
+
+// ==========================================
+//  PERINGKAT
+// ==========================================
+function getRankData(){
+    return [
+        { name:'Subjek Alpha',   iq:168, p:95, m:97, o:97, st:'AKTIF' },
+        { name: S.name||'ANDA',  iq:161, p:88, m:91, o:91, st:'AKTIF', cur:true },
+        { name:'Subjek Gamma',   iq:155, p:92, m:85, o:88, st:'AKTIF' },
+        { name:'Subjek Delta',   iq:152, p:90, m:83, o:85, st:'AKTIF' },
+        { name:'Subjek Epsilon', iq:149, p:78, m:88, o:82, st:'AKTIF' },
+        { name:'Subjek Zeta',    iq:147, p:85, m:76, o:79, st:'AKTIF' },
+        { name:'Subjek Eta',     iq:145, p:80, m:80, o:77, st:'AKTIF' },
+        { name:'Subjek Theta',   iq:142, p:72, m:74, o:73, st:'PERCOBAAN' },
+        { name:'Subjek Iota',    iq:138, p:68, m:65, o:65, st:'PERCOBAAN' },
+        { name:'Subjek Kappa',   iq:135, p:55, m:52, o:54, st:'TERELIMINASI' },
+        { name:'Subjek Lambda',  iq:130, p:50, m:48, o:48, st:'TERELIMINASI' },
+        { name:'Subjek Mu',      iq:125, p:45, m:40, o:42, st:'TERELIMINASI' },
+    ];
+}
+
+// ==========================================
+//  UTILITAS
+// ==========================================
+function $(sel){ return document.querySelector(sel); }
+function $$(sel){ return document.querySelectorAll(sel); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function now(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+
+function showNotif(msg, type='info'){
+    const el=$('#notification');
+    el.textContent=msg;
+    el.className=`notification ${type} show`;
+    setTimeout(()=>el.classList.remove('show'), 4000);
+}
+
+function addLog(type, msg){
+    S.logs.unshift({time:now(), type, msg});
+    const c=$('#log-container');
+    if(!c) return;
+    const d=document.createElement('div');
+    d.className='log-entry';
+    d.innerHTML=`<span class="log-time">[${now()}]</span><span class="log-type ${type}">${type.toUpperCase()}</span> ${msg}`;
+    c.prepend(d);
+}
+
+function getGrade(v){
+    return v>=90?'S':v>=80?'A':v>=70?'B':v>=60?'C':v>=50?'D':'F';
+}
+
+// ==========================================
+//  LOADING
+// ==========================================
+function initLoading(){
+    const bar=$('#loading-bar'), pct=$('#loading-percent'), sts=$('#loading-status');
+    const msgs=['Memulai sistem...','Memuat basis data subjek...','Mengkalibrasi modul penilaian...','Membangun koneksi aman...','Memuat protokol pelatihan...','Menginisialisasi matriks evaluasi...','Memverifikasi integritas sistem...','Sistem siap.'];
+    let p=0;
+    const iv=setInterval(()=>{
+        p+=Math.random()*15;
+        if(p>100) p=100;
+        bar.style.width=p+'%';
+        pct.textContent=Math.floor(p)+'%';
+        sts.textContent=msgs[Math.min(Math.floor(p/13),msgs.length-1)];
+        if(p>=100){
+            clearInterval(iv);
+            setTimeout(()=>{
+                $('#loading-screen').classList.add('hidden');
+                $('#auth-screen').classList.remove('hidden');
+            },800);
+        }
+    },200);
+}
+
+// ==========================================
+//  AUTENTIKASI
+// ==========================================
+function authenticate(){
+    const name=$('#subject-name').value.trim();
+    const code=$('#access-code').value;
+    if(!name){ showNotif('KESALAHAN: Identifikasi subjek diperlukan.','danger'); return; }
+    if(code!=='whiteroom'){ showNotif('KESALAHAN: Kode akses tidak valid. Peringatan keamanan dipicu.','danger'); return; }
+
+    S.name=name;
+    S.id='WR-'+Math.floor(Math.random()*9000+1000);
+
+    $('#auth-screen').classList.add('hidden');
+    const m=$('#main-container');
+    m.classList.add('visible');
+    $('#subject-display').textContent=S.id;
+
+    addLog('success',`Subjek ${S.name} (${S.id}) berhasil diautentikasi`);
+    addLog('info','Program WhiteRoom Generasi 14 diinisialisasi');
+    addLog('info','Semua sistem pemantauan aktif');
+    showNotif(`Selamat datang, ${S.name}. Pelatihan Anda dimulai sekarang.`,'info');
+
+    initDashboard();
+}
+
+document.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !$('#auth-screen').classList.contains('hidden')) authenticate();
+});
+
+// ==========================================
+//  DASHBOARD
+// ==========================================
+function initDashboard(){
+    updateClock(); setInterval(updateClock,1000);
+    renderSchedule();
+    renderPhysical();
+    renderTraining();
+    populateRankings();
+    loadQuiz();
+    loadScenario();
+    calcDays();
+    setTimeout(animBars,500);
+    bindNav();
+}
+
+function updateClock(){
+    const d=new Date();
+    $('#current-time').textContent=`${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} • ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function calcDays(){
+    let start=localStorage.getItem('wr_start');
+    if(!start){ localStorage.setItem('wr_start',new Date().toISOString()); S.day=1; }
+    else S.day=Math.floor((new Date()-new Date(start))/(864e5))+1;
+    $('#days-display').textContent=S.day;
+}
+
+function animBars(){
+    $$('.ability-bar-fill').forEach(b=>{ b.style.width=b.dataset.width+'%'; });
+}
+
+function updateBars(){
+    for(let k in S.ab){
+        const v=Math.round(S.ab[k]);
+        const sc=$(`#score-${k}`), br=$(`#bar-${k}`);
+        if(sc) sc.textContent=v;
+        if(br){ br.dataset.width=v; br.style.width=v+'%'; }
+    }
+    if(S.testsCompleted>0){
+        const r=Math.round((S.quizScore/questions.length)*100);
+        $('#success-rate').textContent=r+'%';
+    }
+}
+
+// ===== NAV =====
+function bindNav(){
+    $$('.nav-tab').forEach(tab=>{
+        tab.addEventListener('click',()=>{
+            $$('.nav-tab').forEach(t=>t.classList.remove('active'));
+            $$('.section').forEach(s=>s.classList.remove('active'));
+            tab.classList.add('active');
+            $(`#section-${tab.dataset.tab}`).classList.add('active');
+            addLog('info',`Navigasi ke modul ${tab.textContent.toUpperCase()}`);
+            if(tab.dataset.tab==='intellectual' && !S.quizDone) startTimer();
+            if(tab.dataset.tab==='overview') setTimeout(animBars,100);
+        });
+    });
+}
+
+// ===== JADWAL =====
+function renderSchedule(){
+    $('#daily-schedule').innerHTML=schedule.map(s=>`
+        <div class="schedule-item">
+            <span class="schedule-time">${s.t}</span>
+            <span class="schedule-activity">${s.a}</span>
+            <span class="schedule-status ${s.s}">${s.s==='selesai'?'SELESAI':s.s==='berlangsung'?'BERLANGSUNG':'MENUNGGU'}</span>
+        </div>`).join('');
+}
+
+// ===== FISIK =====
+function renderPhysical(){
+    let h='';
+    for(let k in S.ex){
+        const e=S.ex[k];
+        h+=`<div class="exercise-card">
+            <div class="exercise-icon">${e.icon}</div>
+            <div class="exercise-name">${e.label}</div>
+            <div class="exercise-target">Target: ${e.t} ${e.isTimer?'detik':'rep'}</div>
+            <div class="exercise-counter" id="ex-${k}">${e.n}</div>
+            <button class="exercise-btn" id="btn-${k}" data-key="${k}">${e.btnLabel}</button>
+        </div>`;
+    }
+    $('#physical-grid').innerHTML=h;
+
+    $$('.exercise-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const k=btn.dataset.key;
+            if(k==='plank') togglePlank();
+            else incEx(k);
+        });
+    });
+}
+
+function incEx(k){
+    S.ex[k].n++;
+    $(`#ex-${k}`).textContent=S.ex[k].n;
+    if(S.ex[k].n>=S.ex[k].t){
+        showNotif(`${S.ex[k].label.toUpperCase()} target tercapai! Performa luar biasa.`,'success');
+        addLog('success',`Target fisik tercapai: ${S.ex[k].label.toUpperCase()}`);
+    }
+    updatePhysScore();
+}
+
+function togglePlank(){
+    const btn=$('#btn-plank');
+    if(!S.plankOn){
+        S.plankOn=true; btn.textContent='BERHENTI';
+        S.plankId=setInterval(()=>{
+            S.ex.plank.n++;
+            $('#ex-plank').textContent=S.ex.plank.n;
+            if(S.ex.plank.n>=S.ex.plank.t){
+                clearInterval(S.plankId); S.plankOn=false; btn.textContent='SELESAI';
+                showNotif('Target plank tercapai!','success');
+            }
+            updatePhysScore();
+        },1000);
+    } else {
+        S.plankOn=false; clearInterval(S.plankId); btn.textContent='MULAI';
+    }
+}
+
+function updatePhysScore(){
+    let tot=0, cnt=0;
+    for(let k in S.ex){ tot+=Math.min(1,S.ex[k].n/S.ex[k].t); cnt++; }
+    const r=tot/cnt;
+    S.ab.physical=Math.min(99,20+r*79);
+    S.ab.combat=Math.min(99,20+r*70);
+    updateBars();
+}
+
+// ===== PELATIHAN =====
+function renderTraining(){
+    $('#training-grid').innerHTML=modules.map(m=>`
+        <div class="training-card${m.locked?' locked':''}" ${m.locked?'':`onclick="showNotif('${m.msg}','info');addLog('info','Modul ${m.cat} dimulai')"`}>
+            <div class="training-card-header">
+                <span class="training-category">${m.cat}</span>
+                <span class="training-level">${m.lvl}</span>
+            </div>
+            <div class="training-title">${m.title}</div>
+            <div class="training-desc">${m.desc}</div>
+            <div class="training-meta">
+                <div class="training-meta-item">Durasi: <span>${m.dur}</span></div>
+                <div class="training-meta-item">Kesulitan: <span>${m.diff}</span></div>
+            </div>
+        </div>`).join('');
+}
+
+// ===== KUIS =====
+function loadQuiz(){
+    S.answers=new Array(questions.length).fill(-1);
+    renderQ();
+    $('#prev-btn').addEventListener('click', prevQ);
+    $('#next-btn').addEventListener('click', nextQ);
+}
+
+function renderQ(){
+    const q=questions[S.curQ];
+    $('#quiz-progress').textContent=`SOAL ${S.curQ+1} / ${questions.length}`;
+    const letters=['A','B','C','D'];
+    let oh='';
+    q.o.forEach((opt,i)=>{
+        oh+=`<button class="option-btn${S.answers[S.curQ]===i?' selected':''}" data-idx="${i}">
+            <span class="option-letter">${letters[i]}</span>${opt}</button>`;
+    });
+    $('#question-container').innerHTML=`
+        <div class="question-number">SOAL ${pad(S.curQ+1)}</div>
+        <div class="question-text">${q.q}</div>
+        <div class="question-options">${oh}</div>`;
+
+    $$('#question-container .option-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            S.answers[S.curQ]=parseInt(btn.dataset.idx);
+            renderQ();
+        });
+    });
+    $('#next-btn').textContent=S.curQ===questions.length-1?'KIRIM':'SELANJUTNYA →';
+}
+
+function nextQ(){
+    if(S.quizDone) return;
+    if(S.curQ<questions.length-1){ S.curQ++; renderQ(); }
+    else submitQuiz();
+}
+function prevQ(){
+    if(S.curQ>0){ S.curQ--; renderQ(); }
+}
+
+function startTimer(){
+    if(S.timerId||S.quizDone) return;
+    S.timerId=setInterval(()=>{
+        S.timerSec--;
+        const m=Math.floor(S.timerSec/60), s=S.timerSec%60;
+        $('#quiz-timer').textContent=`${pad(m)}:${pad(s)}`;
+        if(S.timerSec<=60) $('#quiz-timer').style.animation='pulse 1s infinite';
+        if(S.timerSec<=0) submitQuiz();
+    },1000);
+}
+
+function submitQuiz(){
+    if(S.quizDone) return;
+    S.quizDone=true; clearInterval(S.timerId);
+    let correct=0;
+    S.answers.forEach((a,i)=>{ if(a===questions[i].c) correct++; });
+    S.quizScore=correct; S.testsCompleted++;
+    $('#tests-completed').textContent=S.testsCompleted;
+
+    const pct=Math.round((correct/questions.length)*100);
+    S.ab.academic=Math.min(99,50+pct*0.45);
+    const grade=getGrade(pct);
+
+    $('#quiz-container').style.display='none';
+    const r=$('#quiz-result');
+    r.style.display='block';
+    r.innerHTML=`<div class="eval-result">
+        <div class="eval-grade">${grade}</div>
+        <div class="eval-score">${correct} / ${questions.length} BENAR • ${pct}%</div>
+        <div style="margin-top:30px;text-align:left;max-width:600px;margin:30px auto 0;">
+        ${questions.map((q,i)=>`
+            <div style="margin-bottom:12px;padding:15px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);">
+                <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:${S.answers[i]===q.c?'var(--success)':'var(--danger)'};margin-bottom:5px;">
+                    S${i+1}: ${S.answers[i]===q.c?'✓ BENAR':'✗ SALAH'}
+                </div>
+                <div style="font-size:0.85rem;color:#888;margin-bottom:5px;">${q.q}</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:#555;">${q.e}</div>
+            </div>`).join('')}
+        </div></div>`;
+
+    updateBars();
+    addLog('success',`Penilaian intelektual selesai: ${correct}/${questions.length} (${pct}%)`);
+    showNotif(`Penilaian selesai. Skor: ${pct}%. Grade: ${grade}`, correct>=7?'success':'danger');
+}
+
+// ===== PSIKOLOGI =====
+function loadScenario(){
+    if(S.curScenario>=scenarios.length){
+        $('#psych-scenarios').innerHTML=`<div class="eval-result"><div class="eval-grade">SELESAI</div><div class="eval-score">SEMUA EVALUASI PSIKOLOGIS TELAH DISELESAIKAN</div></div>`;
+        return;
+    }
+    const s=scenarios[S.curScenario];
+    $('#psych-scenarios').innerHTML=`
+        <div class="psych-scenario">
+            <div class="scenario-label">${s.label}</div>
+            <div class="scenario-text">${s.text}</div>
+            <div class="scenario-choices">${s.choices.map((c,i)=>`<button class="scenario-choice" data-idx="${i}">${c}</button>`).join('')}</div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:#333;margin-top:15px;">SKENARIO ${S.curScenario+1} DARI ${scenarios.length}</div>`;
+
+    $$('.scenario-choice').forEach(btn=>{
+        btn.addEventListener('click',()=> pickScenario(parseInt(btn.dataset.idx)));
+    });
+}
+
+function pickScenario(idx){
+    const s=scenarios[S.curScenario];
+    const sc=s.scores[idx];
+    S.ab.psych   =Math.min(99,(S.ab.psych+sc)/2+10);
+    S.ab.emotion =Math.min(99,(S.ab.emotion+sc)/2+5);
+    S.ab.social  =Math.min(99,(S.ab.social+sc*0.8)/2+10);
+    S.ab.strategy=Math.min(99,(S.ab.strategy+sc)/2+5);
+    S.psychDone++; S.curScenario++;
+    updateBars();
+    addLog('info',`Skenario psikologis ${S.curScenario} selesai. Skor: ${sc}/100`);
+    if(sc>=85) showNotif('Respons luar biasa. Profil psikologis Anda telah diperbarui.','success');
+    else if(sc>=60) showNotif('Respons memadai dicatat. Masih ada ruang untuk perbaikan.','info');
+    else showNotif('Respons suboptimal terdeteksi. Kelemahan psikologis ditandai.','danger');
+    setTimeout(loadScenario,500);
+}
+
+// ===== EVALUASI =====
+$('#run-eval-btn')?.addEventListener('click', runEval);
+function runEval(){
+    const intel=Math.round(S.ab.academic);
+    const phys=Math.round(S.ab.physical);
+    const psych=Math.round(S.ab.psych);
+    const strat=Math.round(S.ab.strategy);
+    const overall=Math.round((intel+phys+psych+strat)/4);
+    const grade=getGrade(overall);
+
+    $('#eval-grade').textContent=grade;
+    $('#eval-score-text').textContent=`SKOR KOMPOSIT: ${overall}/100`;
+    $('#eval-intel').textContent=intel;
+    $('#eval-phys').textContent=phys;
+    $('#eval-psych').textContent=psych;
+    $('#eval-strat').textContent=strat;
+    $('#eval-overall').textContent=overall;
+    $('#overall-rating').textContent=grade;
+
+    addLog('success',`Evaluasi menyeluruh selesai. Grade: ${grade}, Skor: ${overall}/100`);
+    showNotif(`Evaluasi selesai. Anda dinilai ${grade} dengan skor komposit ${overall}.`, overall>=70?'success':'danger');
+}
+
+// ===== PERINGKAT =====
+function populateRankings(){
+    const data=getRankData();
+    $('#ranking-body').innerHTML=data.map((s,i)=>{
+        const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+        const tr=s.cur?'current':'';
+        const sc=s.st==='AKTIF'?'var(--success)':s.st==='PERCOBAAN'?'var(--warning)':'var(--danger)';
+        return `<tr class="${tr}">
+            <td><span class="rank-number ${rc}">#${i+1}</span></td>
+            <td>${s.name}${s.cur?' ◄':''}</td>
+            <td>${s.iq}</td><td>${s.p}</td><td>${s.m}</td><td>${s.o}</td>
+            <td><span style="color:${sc};font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:2px;">${s.st}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ==========================================
+//  INIT
+// ==========================================
+window.addEventListener('load', initLoading);
+
+// Fix: bind eval button after DOM ready
+document.addEventListener('DOMContentLoaded', ()=>{
+    const evalBtn = document.getElementById('run-eval-btn');
+    if(evalBtn) evalBtn.addEventListener('click', runEval);
+});
+</script>
+
+</body>
+</html>
